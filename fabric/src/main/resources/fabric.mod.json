@@ -15,8 +15,8 @@
   "icon": "${mod_id}.png",
   "environment": "*",
   "entrypoints": {
-    "main": [
-      "com.niixlabs.inputtweaks.InputTweaks"
+    "client": [
+      "com.niixlabs.inputtweaks.InputTweaksFabric"
     ]
   },
   "mixins": [
@@ -25,11 +25,7 @@
   ],
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",
-    "fabric-api": "*",
     "minecraft": "${minecraft_version}",
     "java": ">=${java_version}"
-  },
-  "suggests": {
-    "another-mod": "*"
   }
 }
