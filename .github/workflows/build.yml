@@ -92,10 +92,10 @@ jobs:
           
           ls -lh release-artifacts/
 
-      - name: Publish Curseforge & Modrinth
+      - name: Publish Curseforge
         if: ${{ inputs.is-release }}
         env:
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
         run: |
           ./gradlew :neoforge:publishCurseforge
           ./gradlew :forge:publishCurseforge
