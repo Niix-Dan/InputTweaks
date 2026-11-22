@@ -147,4 +147,8 @@ public final class InputDispatcher {
     public void clearHeldKeys() {
         heldKeys.clear();
     }
+
+    public void releaseTrackedKey(KeyCode key) {
+        heldKeys.remove(key);
+    }
 }

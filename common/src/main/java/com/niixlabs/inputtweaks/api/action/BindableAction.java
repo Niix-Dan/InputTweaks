@@ -20,4 +20,8 @@ public interface BindableAction {
     void setPressed(boolean down);
 
     void triggerClick();
+
+    default boolean isVirtual() {
+        return false;
+    }
 }

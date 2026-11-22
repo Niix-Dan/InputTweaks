@@ -1,5 +1,6 @@
 package com.niixlabs.inputtweaks.mixin;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.niixlabs.inputtweaks.InputTweaks;
 import com.niixlabs.inputtweaks.core.model.KeyCode;
 import net.minecraft.client.KeyboardHandler;
@@ -14,14 +15,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(KeyboardHandler.class)
 public abstract class KeyboardHandlerMixin {
-    @Shadow
-    @Final
-    private Minecraft minecraft;
+    @Shadow @Final private Minecraft minecraft;
 
     @Inject(method = "keyPress", at = @At("HEAD"), cancellable = true)
     private void inputtweaks$onKeyPress(long window, int key, int scanCode, int action, int modifiers, CallbackInfo ci) {
         InputTweaks app = InputTweaks.get();
-        if (app == null || action == GLFW.GLFW_REPEAT) return;
+        if (app == null || window != this.minecraft.getWindow().getWindow()) return;
+        if (key == GLFW.GLFW_KEY_UNKNOWN || action == GLFW.GLFW_REPEAT) return;
+
+        if (key == GLFW.GLFW_KEY_F3 || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_F3)) {
+            if (action == GLFW.GLFW_RELEASE) {
+                app.dispatcher().releaseTrackedKey(KeyCode.keyboard(key));
+            }
+            return;
+        }
 
         app.profileManager().ensureLoaded();
         boolean pressed = action == GLFW.GLFW_PRESS;

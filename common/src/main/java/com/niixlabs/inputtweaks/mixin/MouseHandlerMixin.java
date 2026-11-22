@@ -21,7 +21,7 @@ public abstract class MouseHandlerMixin {
     @Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
     private void inputtweaks$onMousePress(long window, int button, int action, int modifiers, CallbackInfo ci) {
         InputTweaks app = InputTweaks.get();
-        if (app == null) return;
+        if (app == null || window != this.minecraft.getWindow().getWindow()) return;
 
         app.profileManager().ensureLoaded();
         boolean pressed = action == GLFW.GLFW_PRESS;

@@ -28,12 +28,15 @@ public record ResolvedBind(
     }
 
     public boolean requiresCustomDispatch() {
-        return hardDisabled
+        boolean hasSpecialContext = !"inputtweaks:universal".equals(contextId)
+                && !"inputtweaks:in_game".equals(contextId);
+        return action.isVirtual()
+                || hardDisabled
                 || chord.hasModifiers()
                 || priority != 0
                 || policy == ConflictPolicy.CONSUME
                 || triggerMode != TriggerMode.PRESS
-                || !"inputtweaks:universal".equals(contextId);
+                || hasSpecialContext;
     }
 
     public static final class Builder {

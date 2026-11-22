@@ -65,4 +65,9 @@ public final class RadialActionAdapter implements BindableAction {
             mc.setScreen(new RadialMenuScreen(definition, currentChord, null));
         }
     }
+
+    @Override
+    public boolean isVirtual() {
+        return true;
+    }
 }
