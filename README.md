@@ -3,14 +3,12 @@
 [![GitHub Stars](https://img.shields.io/github/stars/Niix-Dan/InputTweaks?style=flat-square&logo=github)](https://github.com/Niix-Dan/InputTweaks/stargazers)
 [![GitHub Issues](https://img.shields.io/github/issues/Niix-Dan/InputTweaks?style=flat-square&logo=github)](https://github.com/Niix-Dan/InputTweaks/issues)
 [![GitHub Release](https://img.shields.io/github/v/release/Niix-Dan/InputTweaks?style=flat-square&logo=github)](https://github.com/Niix-Dan/InputTweaks/releases)
-[![License](https://img.shields.io/github/license/Niix-Dan/InputTweaks?style=flat-square)](https://github.com/Niix-Dan/InputTweaks/blob/main/LICENSE)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.x-62B47A?style=flat-square&logo=minecraft)](https://github.com/Niix-Dan/InputTweaks)
-[![Loaders](https://img.shields.io/badge/Loaders-Fabric%20%7C%20NeoForge-3B82F6?style=flat-square)](https://github.com/Niix-Dan/InputTweaks)
+[![Loaders](https://img.shields.io/badge/Loaders-Fabric%20%7C%20NeoForge%20%7C%20Forge-3B82F6?style=flat-square)](https://github.com/Niix-Dan/InputTweaks)
 [![Environment](https://img.shields.io/badge/Environment-Client--Side-E6A23C?style=flat-square)](https://github.com/Niix-Dan/InputTweaks)
 
-<!-- 
-[![CurseForge Downloads](https://img.shields.io/curseforge/dt/ PROJECT_ID ?style=flat-square&logo=curseforge&color=F16436)](https://www.curseforge.com/minecraft/mc-mods/input-tweaks)
--->
+
+[![CurseForge Downloads](https://img.shields.io/curseforge/dt/1824449?style=flat-square&logo=curseforge&color=F16436)](https://www.curseforge.com/minecraft/mc-mods/input-tweaks)
 
 **Input Tweaks** is a client-side Minecraft mod for **1.21.x (Fabric & NeoForge)** that expands the vanilla Key Binds screen with conflict management, priorities, contexts, trigger modes, visual radial menus, cross-modpack profiles, and tools for modpack creators.
 
