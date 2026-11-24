@@ -55,8 +55,8 @@ public final class BindPickerScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.renderBackground(graphics, mouseX, mouseY, partialTick);
+    public void renderBackground(GuiGraphics graphics) {
+        super.renderBackground(graphics);
         graphics.fill(0, 0, this.width, 48, UiPalette.BAR_BG);
         UiPalette.drawHorizontalLine(graphics, 0, this.width, 48, UiPalette.BAR_BORDER);
         graphics.fill(0, this.height - 32, this.width, this.height, UiPalette.BAR_BG);
@@ -65,6 +65,7 @@ public final class BindPickerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
         graphics.drawCenteredString(this.font, this.title.copy().withStyle(ChatFormatting.BOLD),
                 this.width / 2, 10, UiPalette.TEXT_PRIMARY);
@@ -81,7 +82,9 @@ public final class BindPickerScreen extends Screen {
         private final int rowW;
 
         ActionList(Minecraft mc, int width, int height, int topY, int rowW) {
-            super(mc, width, height, topY, 22);
+            super(mc, width, topY + height, topY, topY + height, 22);
+            this.setRenderBackground(false);
+            this.setRenderTopAndBottom(false);
             this.rowW = rowW;
         }
 

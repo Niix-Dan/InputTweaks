@@ -422,8 +422,8 @@ public final class RadialEditorScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.renderBackground(graphics, mouseX, mouseY, partialTick);
+    public void renderBackground(GuiGraphics graphics) {
+        super.renderBackground(graphics);
 
         graphics.fill(0, 0, this.width, 68, UiPalette.BAR_BG);
         UiPalette.drawHorizontalLine(graphics, 0, this.width, 68, UiPalette.BAR_BORDER);
@@ -445,6 +445,7 @@ public final class RadialEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
 
         int panelW = Math.min(this.width - 20, 456);

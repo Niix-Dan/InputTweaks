@@ -503,8 +503,8 @@ public final class InputTweaksScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.renderBackground(graphics, mouseX, mouseY, partialTick);
+    public void renderBackground(GuiGraphics graphics) {
+        super.renderBackground(graphics);
 
         graphics.fill(0, 0, this.width, HEADER_HEIGHT, UiPalette.BAR_BG);
         UiPalette.drawHorizontalLine(graphics, 0, this.width, HEADER_HEIGHT, UiPalette.BAR_BORDER);
@@ -523,6 +523,7 @@ public final class InputTweaksScreen extends Screen {
 
         int footerTop = this.height - FOOTER_HEIGHT;
 
+        renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
 
         int barW = Math.min(this.width - 24, 444);

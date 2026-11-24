@@ -22,10 +22,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Gradle
@@ -40,32 +40,34 @@ jobs:
       - name: Get Mod Version
         id: get_version
         run: |
-          VERSION=$(grep -E "^version[ \t]*=" gradle.properties | awk -F= '{print $2}' | tr -d ' "')
-          echo "MOD_VERSION=$VERSION" >> $GITHUB_ENV
+          VERSION=$(grep -E "^version[ \t]*=" gradle.properties | awk -F= '{print $2}' | tr -d ' "\r')
+          MC_VERSION=$(grep -E "^minecraft_version[ \t]*=" gradle.properties | awk -F= '{print $2}' | tr -d ' "\r')
+          echo "MOD_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "MC_VERSION=$MC_VERSION" >> "$GITHUB_ENV"
 
       - name: Extract Changelog for Version
         run: |
           python3 -c '
           import re, os
-          
+
           version = os.environ.get("MOD_VERSION", "")
           changelog_path = "CHANGELOG.md"
-          
+
           extracted = ""
           if os.path.exists(changelog_path):
               with open(changelog_path, "r", encoding="utf-8") as f:
                   text = f.read().replace("\r\n", "\n")
-          
+
               sections = re.split(r"(?m)^---\s*$", text)
               for sec in sections:
                   sec_str = sec.strip()
                   if sec_str.startswith(f"## v{version}") or sec_str.startswith(f"## {version}"):
                       extracted = re.sub(r"^##\s*v?[^\n]+\n?", "", sec_str).strip()
                       break
-          
+
               if not extracted and sections:
                   extracted = re.sub(r"^##\s*v?[^\n]+\n?", "", sections[0].strip()).strip()
-          
+
           with open("RELEASE_CHANGELOG.md", "w", encoding="utf-8") as f:
               f.write(extracted)
           '
@@ -74,22 +76,22 @@ jobs:
         run: |
           mkdir -p release-artifacts
           VERSION=${{ env.MOD_VERSION }}
-          
+          MC_VERSION=${{ env.MC_VERSION }}
+
           copy_clean_jar() {
             local folder=$1
             local loader_name=$2
-          
+
             for jar in $folder/build/libs/*.jar; do
               if [[ -f "$jar" && ! "$jar" =~ -(dev|sources|plain|javadoc)\.jar$ ]]; then
-                cp "$jar" "release-artifacts/InputTweaks-${loader_name}-${VERSION}.jar"
+                cp "$jar" "release-artifacts/InputTweaks-${loader_name}-${MC_VERSION}-${VERSION}.jar"
               fi
             done
           }
-          
+
           copy_clean_jar "fabric" "Fabric"
           copy_clean_jar "forge" "Forge"
-          copy_clean_jar "neoforge" "NeoForge"
-          
+
           ls -lh release-artifacts/
 
       - name: Publish Curseforge
@@ -97,7 +99,6 @@ jobs:
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
         run: |
-          ./gradlew :neoforge:publishCurseforge
           ./gradlew :forge:publishCurseforge
           ./gradlew :fabric:publishCurseforge
 
@@ -105,8 +106,8 @@ jobs:
         if: ${{ inputs.is-release }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ env.MOD_VERSION }}
-          name: InputTweaks v${{ env.MOD_VERSION }}
+          tag_name: v${{ env.MOD_VERSION }}+${{ env.MC_VERSION }}
+          name: InputTweaks v${{ env.MOD_VERSION }} (${{ env.MC_VERSION }})
           body_path: RELEASE_CHANGELOG.md
           files: release-artifacts/*.jar
           draft: false

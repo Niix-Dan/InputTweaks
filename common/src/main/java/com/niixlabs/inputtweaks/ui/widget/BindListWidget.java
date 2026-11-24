@@ -40,7 +40,9 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
             ControlsViewModel viewModel,
             Runnable softRefreshCallback
     ) {
-        super(minecraft, width, height, topY, 24);
+        super(minecraft, width, topY + height, topY, topY + height, 24);
+        this.setRenderBackground(false);
+        this.setRenderTopAndBottom(false);
         this.viewModel = viewModel;
         this.softRefreshCallback = softRefreshCallback;
         rebuildEntries(viewModel.listScrollAmount());
@@ -89,9 +91,9 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
     }
 
     @Override
-    public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.pendingTooltip = null;
-        super.renderWidget(graphics, mouseX, mouseY, partialTick);
+        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     public void renderDeferredTooltip(GuiGraphics graphics) {

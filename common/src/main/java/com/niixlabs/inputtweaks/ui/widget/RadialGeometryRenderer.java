@@ -212,10 +212,10 @@ public final class RadialGeometryRenderer {
             float c1 = (float) Math.cos(a1);
             float s1 = (float) Math.sin(a1);
 
-            vc.addVertex(m, cx + c0 * rOuter, cy + s0 * rOuter, 0).setColor(r, g, b, a);
-            vc.addVertex(m, cx + c0 * rInner, cy + s0 * rInner, 0).setColor(r, g, b, a);
-            vc.addVertex(m, cx + c1 * rInner, cy + s1 * rInner, 0).setColor(r, g, b, a);
-            vc.addVertex(m, cx + c1 * rOuter, cy + s1 * rOuter, 0).setColor(r, g, b, a);
+            vc.vertex(m, cx + c0 * rOuter, cy + s0 * rOuter, 0).color(r, g, b, a).endVertex();
+            vc.vertex(m, cx + c0 * rInner, cy + s0 * rInner, 0).color(r, g, b, a).endVertex();
+            vc.vertex(m, cx + c1 * rInner, cy + s1 * rInner, 0).color(r, g, b, a).endVertex();
+            vc.vertex(m, cx + c1 * rOuter, cy + s1 * rOuter, 0).color(r, g, b, a).endVertex();
         }
     }
 
@@ -249,10 +249,10 @@ public final class RadialGeometryRenderer {
         float rightX = cx + (float) Math.cos(angle + halfSpreadRad) * baseR;
         float rightY = cy + (float) Math.sin(angle + halfSpreadRad) * baseR;
 
-        vc.addVertex(m, tipX, tipY, 0).setColor(r, g, b, a);
-        vc.addVertex(m, leftX, leftY, 0).setColor(r, g, b, a);
-        vc.addVertex(m, notchX, notchY, 0).setColor(r, g, b, a);
-        vc.addVertex(m, rightX, rightY, 0).setColor(r, g, b, a);
+        vc.vertex(m, tipX, tipY, 0).color(r, g, b, a).endVertex();
+        vc.vertex(m, leftX, leftY, 0).color(r, g, b, a).endVertex();
+        vc.vertex(m, notchX, notchY, 0).color(r, g, b, a).endVertex();
+        vc.vertex(m, rightX, rightY, 0).color(r, g, b, a).endVertex();
     }
 
     private static int tintDark(int rgb, float brightness, int alphaByte) {

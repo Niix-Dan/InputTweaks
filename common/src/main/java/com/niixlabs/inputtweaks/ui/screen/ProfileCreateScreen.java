@@ -106,8 +106,8 @@ public final class ProfileCreateScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.renderBackground(graphics, mouseX, mouseY, partialTick);
+    public void renderBackground(GuiGraphics graphics) {
+        super.renderBackground(graphics);
         int cardLeft = this.width / 2 - CARD_W / 2;
         int cardTop = this.height / 2 - CARD_H / 2;
 
@@ -120,6 +120,7 @@ public final class ProfileCreateScreen extends Screen {
         int cardLeft = this.width / 2 - CARD_W / 2;
         int cardTop = this.height / 2 - CARD_H / 2;
 
+        renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
 
         graphics.drawCenteredString(this.font, this.title.copy().withStyle(ChatFormatting.BOLD), this.width / 2, cardTop + 8, UiPalette.TEXT_PRIMARY);

@@ -69,8 +69,8 @@ public final class IconPickerScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.renderBackground(graphics, mouseX, mouseY, partialTick);
+    public void renderBackground(GuiGraphics graphics) {
+        super.renderBackground(graphics);
         int cardLeft = this.width / 2 - CARD_W / 2;
         int cardTop = this.height / 2 - CARD_H / 2;
         UiPalette.drawFramedPanel(graphics, cardLeft, cardTop, CARD_W, CARD_H, UiPalette.CARD_BG, UiPalette.CARD_BORDER);
@@ -79,6 +79,7 @@ public final class IconPickerScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
 
         int cardTop = this.height / 2 - CARD_H / 2;
@@ -151,13 +152,13 @@ public final class IconPickerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         int maxScroll = maxScrollRow();
         if (maxScroll > 0) {
-            scrollRow = Math.max(0, Math.min(maxScroll, scrollRow - (scrollY > 0 ? 1 : -1)));
+            scrollRow = Math.max(0, Math.min(maxScroll, scrollRow - (delta > 0 ? 1 : -1)));
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, delta);
     }
 
     @Override
