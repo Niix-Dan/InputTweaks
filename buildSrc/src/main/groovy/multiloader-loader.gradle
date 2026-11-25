@@ -87,7 +87,7 @@ publishMods {
     displayName = "${mod_name} ${loaderName} v${project.version}"
 
     if (project.name == 'fabric') {
-        modLoaders.addAll('fabric', 'quilt')
+        modLoaders.addAll('fabric')
     } else if (project.name == 'neoforge') {
         modLoaders.add('neoforge')
     } else if (project.name == 'forge') {
