@@ -7,15 +7,17 @@ base {
     archivesName = "${mod_name}-forge-${minecraft_version}"
 }
 mixin {
+    add(sourceSets.main, "${mod_id}.refmap.json")
     config("${mod_id}.mixins.json")
-    config("${mod_id}.forge.mixins.json")
+    if (file("src/main/resources/${mod_id}.forge.mixins.json").exists()) {
+        config("${mod_id}.forge.mixins.json")
+    }
 }
 
 minecraft {
     mappings channel: 'official', version: minecraft_version
 
     copyIdeResources = true
-    reobf = false
 
     def at = file('src/main/resources/META-INF/accesstransformer.cfg')
     if (at.exists()) {
@@ -63,9 +65,24 @@ sourceSets.main.resources.srcDir 'src/generated/resources'
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT:processor")
+    annotationProcessor("org.spongepowered:mixin:0.8.5:processor")
 
     implementation('net.sf.jopt-simple:jopt-simple:5.0.4') { version { strictly '5.0.4' } }
+}
+
+jar {
+    def mixinConfigs = ["${mod_id}.mixins.json"]
+    if (file("src/main/resources/${mod_id}.forge.mixins.json").exists()) {
+        mixinConfigs.add("${mod_id}.forge.mixins.json")
+    }
+
+    manifest {
+        attributes([
+                'MixinConfigs': mixinConfigs.join(',')
+        ])
+    }
+
+    finalizedBy('reobfJar')
 }
 
 publishing {
@@ -74,10 +91,4 @@ publishing {
             fg.component(it)
         }
     }
-}
-
-sourceSets.each {
-    def dir = layout.buildDirectory.dir("sourcesSets/$it.name")
-    it.output.resourcesDir = dir
-    it.java.destinationDirectory = dir
 }

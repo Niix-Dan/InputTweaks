@@ -27,9 +27,10 @@ tasks.named('compileJava', JavaCompile) {
     source(configurations.commonJava)
 }
 
-processResources {
+tasks.named('processResources') {
     dependsOn(configurations.commonResources)
     from(configurations.commonResources)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 tasks.withType(Javadoc).configureEach {
@@ -102,6 +103,8 @@ afterEvaluate {
     publishMods {
         if (tasks.names.contains('remapJar')) {
             file = tasks.named('remapJar').flatMap { it.archiveFile }
+        } else if (tasks.names.contains('reobfJar')) {
+            file = tasks.named('reobfJar').flatMap { it.output }
         } else {
             file = tasks.named('jar').flatMap { it.archiveFile }
         }
