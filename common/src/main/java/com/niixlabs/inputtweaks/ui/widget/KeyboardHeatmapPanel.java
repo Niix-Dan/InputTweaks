@@ -1,5 +1,6 @@
 package com.niixlabs.inputtweaks.ui.widget;
 
+import com.niixlabs.inputtweaks.bridge.InputKeyMapper;
 import com.niixlabs.inputtweaks.core.conflict.ConflictDetector;
 import com.niixlabs.inputtweaks.core.conflict.KeyHeatStatus;
 import com.niixlabs.inputtweaks.core.model.KeyCode;
@@ -16,26 +17,34 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class KeyboardHeatmapPanel {
+    private record KeyTile(String label, KeyCode key, int x, int y, int w, int h) {
+        boolean contains(double mx, double my) {
+            return mx >= x && mx <= x + w && my >= y && my <= y + h;
+        }
+    }
+
     private static final Object[][] KEYBOARD_ROWS = {
-            {"`", GLFW.GLFW_KEY_GRAVE_ACCENT, "1", GLFW.GLFW_KEY_1, "2", GLFW.GLFW_KEY_2, "3", GLFW.GLFW_KEY_3,
-                    "4", GLFW.GLFW_KEY_4, "5", GLFW.GLFW_KEY_5, "6", GLFW.GLFW_KEY_6, "7", GLFW.GLFW_KEY_7,
-                    "8", GLFW.GLFW_KEY_8, "9", GLFW.GLFW_KEY_9, "0", GLFW.GLFW_KEY_0, "-", GLFW.GLFW_KEY_MINUS,
-                    "=", GLFW.GLFW_KEY_EQUAL, "M1", -101, "M2", -102},
-            {"TAB", GLFW.GLFW_KEY_TAB, "Q", GLFW.GLFW_KEY_Q, "W", GLFW.GLFW_KEY_W, "E", GLFW.GLFW_KEY_E,
-                    "R", GLFW.GLFW_KEY_R, "T", GLFW.GLFW_KEY_T, "Y", GLFW.GLFW_KEY_Y, "U", GLFW.GLFW_KEY_U,
-                    "I", GLFW.GLFW_KEY_I, "O", GLFW.GLFW_KEY_O, "P", GLFW.GLFW_KEY_P, "[", GLFW.GLFW_KEY_LEFT_BRACKET,
-                    "]", GLFW.GLFW_KEY_RIGHT_BRACKET, "M3", -103},
-            {"CAPS", GLFW.GLFW_KEY_CAPS_LOCK, "A", GLFW.GLFW_KEY_A, "S", GLFW.GLFW_KEY_S, "D", GLFW.GLFW_KEY_D,
-                    "F", GLFW.GLFW_KEY_F, "G", GLFW.GLFW_KEY_G, "H", GLFW.GLFW_KEY_H, "J", GLFW.GLFW_KEY_J,
-                    "K", GLFW.GLFW_KEY_K, "L", GLFW.GLFW_KEY_L, ";", GLFW.GLFW_KEY_SEMICOLON, "'", GLFW.GLFW_KEY_APOSTROPHE,
-                    "M4", -104},
-            {"SHIFT", GLFW.GLFW_KEY_LEFT_SHIFT, "Z", GLFW.GLFW_KEY_Z, "X", GLFW.GLFW_KEY_X, "C", GLFW.GLFW_KEY_C,
-                    "V", GLFW.GLFW_KEY_V, "B", GLFW.GLFW_KEY_B, "N", GLFW.GLFW_KEY_N, "M", GLFW.GLFW_KEY_M,
-                    ",", GLFW.GLFW_KEY_COMMA, ".", GLFW.GLFW_KEY_PERIOD, "/", GLFW.GLFW_KEY_SLASH,
-                    "CTRL", GLFW.GLFW_KEY_LEFT_CONTROL, "ALT", GLFW.GLFW_KEY_LEFT_ALT, "SPC", GLFW.GLFW_KEY_SPACE, "M5", -105}
+        { "`", GLFW.GLFW_KEY_GRAVE_ACCENT, "1", GLFW.GLFW_KEY_1, "2", GLFW.GLFW_KEY_2, "3", GLFW.GLFW_KEY_3,
+          "4", GLFW.GLFW_KEY_4, "5", GLFW.GLFW_KEY_5, "6", GLFW.GLFW_KEY_6, "7", GLFW.GLFW_KEY_7,
+          "8", GLFW.GLFW_KEY_8, "9", GLFW.GLFW_KEY_9, "0", GLFW.GLFW_KEY_0, "-", GLFW.GLFW_KEY_MINUS,
+          "=", GLFW.GLFW_KEY_EQUAL, "M1", -101, "M2", -102 },
+        { "TAB", GLFW.GLFW_KEY_TAB, "Q", GLFW.GLFW_KEY_Q, "W", GLFW.GLFW_KEY_W, "E", GLFW.GLFW_KEY_E,
+          "R", GLFW.GLFW_KEY_R, "T", GLFW.GLFW_KEY_T, "Y", GLFW.GLFW_KEY_Y, "U", GLFW.GLFW_KEY_U,
+          "I", GLFW.GLFW_KEY_I, "O", GLFW.GLFW_KEY_O, "P", GLFW.GLFW_KEY_P, "[", GLFW.GLFW_KEY_LEFT_BRACKET,
+          "]", GLFW.GLFW_KEY_RIGHT_BRACKET, "M3", -103 },
+        { "CAPS", GLFW.GLFW_KEY_CAPS_LOCK, "A", GLFW.GLFW_KEY_A, "S", GLFW.GLFW_KEY_S, "D", GLFW.GLFW_KEY_D,
+          "F", GLFW.GLFW_KEY_F, "G", GLFW.GLFW_KEY_G, "H", GLFW.GLFW_KEY_H, "J", GLFW.GLFW_KEY_J,
+          "K", GLFW.GLFW_KEY_K, "L", GLFW.GLFW_KEY_L, ";", GLFW.GLFW_KEY_SEMICOLON, "'", GLFW.GLFW_KEY_APOSTROPHE,
+          "M4", -104 },
+        { "SHIFT", GLFW.GLFW_KEY_LEFT_SHIFT, "Z", GLFW.GLFW_KEY_Z, "X", GLFW.GLFW_KEY_X, "C", GLFW.GLFW_KEY_C,
+          "V", GLFW.GLFW_KEY_V, "B", GLFW.GLFW_KEY_B, "N", GLFW.GLFW_KEY_N, "M", GLFW.GLFW_KEY_M,
+          ",", GLFW.GLFW_KEY_COMMA, ".", GLFW.GLFW_KEY_PERIOD, "/", GLFW.GLFW_KEY_SLASH,
+          "CTRL", GLFW.GLFW_KEY_LEFT_CONTROL, "ALT", GLFW.GLFW_KEY_LEFT_ALT, "SPC", GLFW.GLFW_KEY_SPACE, "M5", -105 }
     };
+
     private final List<KeyTile> tiles = new ArrayList<>();
     private final ConflictDetector conflictDetector;
+
     private int panelX;
     private int panelY;
     private int panelW;
@@ -114,11 +123,15 @@ public final class KeyboardHeatmapPanel {
             int border = selected ? 0xFFFFFFFF : (hovered ? 0xFFE0E0E0 : 0xFF0E1015);
             graphics.renderOutline(tile.x(), tile.y(), tile.w(), tile.h(), border);
 
+            if (conflictDetector.isUsedAsModifier(tile.key())) {
+                graphics.fill(tile.x() + tile.w() - 4, tile.y() + 2, tile.x() + tile.w() - 2, tile.y() + 4, 0xFF36CFC9);
+            }
+
             graphics.drawCenteredString(
-                    font, tile.label(),
-                    tile.x() + tile.w() / 2,
-                    tile.y() + (tile.h() - font.lineHeight) / 2 + 1,
-                    0xFFFFFFFF
+                font, tile.label(),
+                tile.x() + tile.w() / 2,
+                tile.y() + (tile.h() - font.lineHeight) / 2 + 1,
+                0xFFFFFFFF
             );
         }
 
@@ -126,13 +139,30 @@ public final class KeyboardHeatmapPanel {
 
         if (hoveredTile != null) {
             List<ResolvedBind> binds = conflictDetector.getBindsForKey(hoveredTile.key());
+            List<ResolvedBind> modCombos = conflictDetector.getModifierCombos(hoveredTile.key());
             List<Component> lines = new ArrayList<>();
             lines.add(Component.literal(hoveredTile.label() + " (" + binds.size() + ")").withStyle(ChatFormatting.BOLD));
             for (int i = 0; i < Math.min(binds.size(), 6); i++) {
-                lines.add(Component.literal(" • ").append(Component.translatable(binds.get(i).action().translationKey())));
+                ResolvedBind b = binds.get(i);
+                var line = Component.literal(" • ").append(Component.translatable(b.action().translationKey()));
+                if (b.chord().hasModifiers()) {
+                    line.append(Component.literal(" [" + InputKeyMapper.formatChordCompact(b.chord()).getString() + "]")
+                        .withStyle(ChatFormatting.AQUA));
+                }
+                lines.add(line);
             }
             if (binds.size() > 6) {
                 lines.add(Component.literal(" + " + (binds.size() - 6) + " more...").withStyle(ChatFormatting.GRAY));
+            }
+            if (!modCombos.isEmpty()) {
+                lines.add(Component.literal("Combo modifier for " + modCombos.size() + " action(s):")
+                    .withStyle(ChatFormatting.AQUA));
+                for (int i = 0; i < Math.min(modCombos.size(), 4); i++) {
+                    ResolvedBind b = modCombos.get(i);
+                    lines.add(Component.literal(" + " + InputKeyMapper.formatChordCompact(b.chord()).getString() + " -> ")
+                        .withStyle(ChatFormatting.GRAY)
+                        .append(Component.translatable(b.action().translationKey()).withStyle(ChatFormatting.WHITE)));
+                }
             }
             lines.add(Component.translatable("inputtweaks.heatmap.hint").withStyle(ChatFormatting.DARK_GRAY));
             graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
@@ -161,11 +191,11 @@ public final class KeyboardHeatmapPanel {
     }
 
     public boolean mouseClicked(
-            double mouseX,
-            double mouseY,
-            int button,
-            Consumer<KeyCode> onSelectFilter,
-            Consumer<KeyCode> onQuickUnbind
+        double mouseX,
+        double mouseY,
+        int button,
+        Consumer<KeyCode> onSelectFilter,
+        Consumer<KeyCode> onQuickUnbind
     ) {
         for (KeyTile tile : tiles) {
             if (tile.contains(mouseX, mouseY)) {
@@ -182,11 +212,5 @@ public final class KeyboardHeatmapPanel {
 
     public int height() {
         return 94;
-    }
-
-    private record KeyTile(String label, KeyCode key, int x, int y, int w, int h) {
-        boolean contains(double mx, double my) {
-            return mx >= x && mx <= x + w && my >= y && my <= y + h;
-        }
     }
 }

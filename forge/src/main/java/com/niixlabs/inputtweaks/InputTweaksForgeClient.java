@@ -8,6 +8,10 @@ import net.minecraftforge.client.settings.IKeyConflictContext;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.fml.loading.FMLPaths;
 
+import com.niixlabs.inputtweaks.ui.overlay.DebugInputOverlay;
+import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.common.MinecraftForge;
+
 import java.nio.file.Path;
 
 final class InputTweaksForgeClient {
@@ -28,5 +32,9 @@ final class InputTweaksForgeClient {
             }
         };
         InputTweaks.init(paths, keyBridge);
+
+        MinecraftForge.EVENT_BUS.addListener((RenderGuiEvent.Post event) -> {
+            DebugInputOverlay.render(event.getGuiGraphics());
+        });
     }
 }

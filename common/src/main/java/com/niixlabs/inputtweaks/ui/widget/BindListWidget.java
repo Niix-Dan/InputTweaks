@@ -404,13 +404,15 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
                 return Component.translatable("inputtweaks.state.disabled").withStyle(ChatFormatting.DARK_RED);
             }
             if (bind.id().equals(viewModel.capturingBindId())) {
+                Component inner = viewModel.captureSession().hasKeysPressed()
+                        ? InputKeyMapper.formatCapturePreview(viewModel.captureSession().orderedKeys())
+                        : Component.translatable("inputtweaks.state.press_key");
                 return Component.literal("> ")
-                        .append(Component.translatable("inputtweaks.state.press_key")
-                                .withStyle(ChatFormatting.WHITE, ChatFormatting.UNDERLINE))
+                        .append(inner.copy().withStyle(ChatFormatting.WHITE, ChatFormatting.UNDERLINE))
                         .append(" <")
                         .withStyle(ChatFormatting.YELLOW);
             }
-            MutableComponent base = InputKeyMapper.formatChord(bind.chord()).copy();
+            MutableComponent base = InputKeyMapper.formatChordCompact(bind.chord()).copy();
             if (bind.chord().isUnbound()) {
                 return base.withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC);
             }
@@ -426,6 +428,13 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
         private List<Component> buildTooltipLines() {
             List<Component> lines = new ArrayList<>();
             lines.add(displayName.copy().withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD));
+
+            if (bind.chord().hasModifiers()) {
+                lines.add(Component.literal("Combo: ")
+                        .withStyle(ChatFormatting.GRAY)
+                        .append(InputKeyMapper.formatChord(bind.chord()).copy().withStyle(ChatFormatting.AQUA)));
+            }
+
             lines.add(Component.translatable(bind.origin().translationKey()).withStyle(ChatFormatting.GRAY)
                     .append(Component.literal("  •  @" + bind.action().modId()).withStyle(ChatFormatting.DARK_GRAY)));
 

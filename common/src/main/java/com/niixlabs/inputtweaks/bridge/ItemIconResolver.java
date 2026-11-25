@@ -9,57 +9,67 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public final class ItemIconResolver {
+    public record IconOption(String itemId, String displayName, ItemStack stack) {}
+
     private static final List<String> CURATED_IDS = List.of(
-            "minecraft:compass",
-            "minecraft:recovery_compass",
-            "minecraft:filled_map",
-            "minecraft:book",
-            "minecraft:writable_book",
-            "minecraft:enchanted_book",
-            "minecraft:knowledge_book",
-            "minecraft:diamond_sword",
-            "minecraft:netherite_pickaxe",
-            "minecraft:iron_axe",
-            "minecraft:bow",
-            "minecraft:crossbow",
-            "minecraft:shield",
-            "minecraft:elytra",
-            "minecraft:ender_pearl",
-            "minecraft:ender_eye",
-            "minecraft:chest",
-            "minecraft:ender_chest",
-            "minecraft:shulker_box",
-            "minecraft:crafting_table",
-            "minecraft:furnace",
-            "minecraft:anvil",
-            "minecraft:torch",
-            "minecraft:lantern",
-            "minecraft:spyglass",
-            "minecraft:clock",
-            "minecraft:bell",
-            "minecraft:redstone",
-            "minecraft:lever",
-            "minecraft:beacon",
-            "minecraft:totem_of_undying",
-            "minecraft:golden_apple",
-            "minecraft:potion",
-            "minecraft:feather",
-            "minecraft:name_tag",
-            "minecraft:saddle",
-            "minecraft:oak_boat",
-            "minecraft:minecart",
-            "minecraft:tnt",
-            "minecraft:nether_star"
+        "minecraft:compass",
+        "minecraft:recovery_compass",
+        "minecraft:filled_map",
+        "minecraft:book",
+        "minecraft:writable_book",
+        "minecraft:enchanted_book",
+        "minecraft:knowledge_book",
+        "minecraft:diamond_sword",
+        "minecraft:netherite_pickaxe",
+        "minecraft:iron_axe",
+        "minecraft:bow",
+        "minecraft:crossbow",
+        "minecraft:shield",
+        "minecraft:elytra",
+        "minecraft:ender_pearl",
+        "minecraft:ender_eye",
+        "minecraft:chest",
+        "minecraft:ender_chest",
+        "minecraft:shulker_box",
+        "minecraft:crafting_table",
+        "minecraft:furnace",
+        "minecraft:anvil",
+        "minecraft:torch",
+        "minecraft:lantern",
+        "minecraft:spyglass",
+        "minecraft:clock",
+        "minecraft:bell",
+        "minecraft:redstone",
+        "minecraft:lever",
+        "minecraft:beacon",
+        "minecraft:totem_of_undying",
+        "minecraft:golden_apple",
+        "minecraft:potion",
+        "minecraft:feather",
+        "minecraft:name_tag",
+        "minecraft:saddle",
+        "minecraft:oak_boat",
+        "minecraft:minecart",
+        "minecraft:tnt",
+        "minecraft:nether_star"
     );
+
     private static final Map<String, ItemStack> STACK_CACHE = new HashMap<>();
     private static final Set<String> UNSAFE_WITHOUT_WORLD = new HashSet<>();
     private static final Set<String> BROKEN_RENDERERS = new HashSet<>();
     private static List<IconOption> cachedCatalog = null;
-    private ItemIconResolver() {
-    }
+
+    private ItemIconResolver() {}
 
     public static ItemStack resolve(String itemId) {
         if (itemId == null || itemId.isBlank()) {
@@ -77,6 +87,11 @@ public final class ItemIconResolver {
         });
     }
 
+    public static String displayName(String itemId) {
+        String fallback = (itemId == null || itemId.isBlank()) ? "minecraft:compass" : itemId;
+        return safeDisplayName(resolve(fallback), fallback);
+    }
+
     public static List<IconOption> searchCatalog(String query) {
         List<IconOption> all = fullCatalog();
         if (query == null || query.isBlank()) {
@@ -86,16 +101,11 @@ public final class ItemIconResolver {
         List<IconOption> filtered = new ArrayList<>();
         for (IconOption opt : all) {
             if (opt.displayName().toLowerCase(Locale.ROOT).contains(q)
-                    || opt.itemId().toLowerCase(Locale.ROOT).contains(q)) {
+                || opt.itemId().toLowerCase(Locale.ROOT).contains(q)) {
                 filtered.add(opt);
             }
         }
         return filtered;
-    }
-
-    public static String displayName(String itemId) {
-        String fallback = (itemId == null || itemId.isBlank()) ? "minecraft:compass" : itemId;
-        return safeDisplayName(resolve(fallback), fallback);
     }
 
     private static List<IconOption> fullCatalog() {
@@ -154,12 +164,6 @@ public final class ItemIconResolver {
         return (mc.player == null || mc.level == null) && UNSAFE_WITHOUT_WORLD.contains(itemId);
     }
 
-    private static void drawFallbackIcon(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x + 2, y + 2, x + 14, y + 14, 0x663A4354);
-        graphics.renderOutline(x + 2, y + 2, 12, 12, 0xAA6A768C);
-        graphics.drawCenteredString(Minecraft.getInstance().font, "?", x + 8, y + 4, 0xFFCBD4E1);
-    }
-
     public static void renderSafe(GuiGraphics graphics, String itemId, ItemStack stack, int x, int y) {
         String key = (itemId == null || itemId.isBlank()) ? "minecraft:compass" : itemId;
         if (stack == null || stack.isEmpty() || isRenderBlocked(key)) {
@@ -188,6 +192,9 @@ public final class ItemIconResolver {
         }
     }
 
-    public record IconOption(String itemId, String displayName, ItemStack stack) {
+    private static void drawFallbackIcon(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x + 2, y + 2, x + 14, y + 14, 0x663A4354);
+        graphics.renderOutline(x + 2, y + 2, 12, 12, 0xAA6A768C);
+        graphics.drawCenteredString(Minecraft.getInstance().font, "?", x + 8, y + 4, 0xFFCBD4E1);
     }
 }

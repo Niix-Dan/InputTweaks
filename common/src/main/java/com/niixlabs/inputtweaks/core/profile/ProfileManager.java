@@ -7,11 +7,23 @@ import com.niixlabs.inputtweaks.core.layer.ConfigLayer;
 import com.niixlabs.inputtweaks.core.layer.LayerMerger;
 import com.niixlabs.inputtweaks.core.layer.ModpackConfigLayer;
 import com.niixlabs.inputtweaks.core.layer.ProfileConfigLayer;
-import com.niixlabs.inputtweaks.core.model.*;
+import com.niixlabs.inputtweaks.core.model.BindOrigin;
+import com.niixlabs.inputtweaks.core.model.KeyChord;
+import com.niixlabs.inputtweaks.core.model.KeyCode;
+import com.niixlabs.inputtweaks.core.model.ModpackConfig;
+import com.niixlabs.inputtweaks.core.model.ModpackRule;
+import com.niixlabs.inputtweaks.core.model.ProfileData;
+import com.niixlabs.inputtweaks.core.model.ProfileEntry;
+import com.niixlabs.inputtweaks.core.model.RadialMenuDefinition;
+import com.niixlabs.inputtweaks.core.model.ResolvedBind;
 import com.niixlabs.inputtweaks.storage.ModpackRuleRepository;
 import com.niixlabs.inputtweaks.storage.ProfileRepository;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -93,7 +105,8 @@ public final class ProfileManager {
             String defaultCtx = defaultContextResolver.apply(action);
             ResolvedBind resolved = layerMerger.merge(action, defaultCtx, layers);
             resolvedBinds.put(action.id(), resolved);
-            action.applyChord(resolved.hardDisabled() ? KeyChord.UNBOUND : resolved.chord());
+            boolean suppressVanilla = resolved.hardDisabled() || resolved.chord().hasModifiers();
+            action.applyChord(suppressVanilla ? KeyChord.UNBOUND : resolved.chord());
         }
 
         syncVanillaCallback.run();

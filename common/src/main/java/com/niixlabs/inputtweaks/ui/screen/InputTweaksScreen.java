@@ -2,7 +2,6 @@ package com.niixlabs.inputtweaks.ui.screen;
 
 import com.niixlabs.inputtweaks.InputTweaks;
 import com.niixlabs.inputtweaks.bridge.InputKeyMapper;
-import com.niixlabs.inputtweaks.core.model.KeyChord;
 import com.niixlabs.inputtweaks.core.model.KeyCode;
 import com.niixlabs.inputtweaks.ui.state.ControlsViewModel;
 import com.niixlabs.inputtweaks.ui.theme.UiPalette;
@@ -17,9 +16,6 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
-
-import java.util.HashSet;
-import java.util.Set;
 
 public final class InputTweaksScreen extends Screen {
     private static final long RESET_CONFIRM_WINDOW_MS = 3000L;
@@ -48,7 +44,6 @@ public final class InputTweaksScreen extends Screen {
     private Button resetAllButton;
 
     private long resetConfirmUntilMs = 0L;
-    private int pendingModifierKey = -1;
 
     public InputTweaksScreen(Screen lastScreen, Options options) {
         super(Component.translatable("controls.keybinds.title"));
@@ -213,7 +208,6 @@ public final class InputTweaksScreen extends Screen {
                         Component.empty(),
                         btn -> {
                             viewModel.setCapturingBindId(null);
-                            pendingModifierKey = -1;
                             viewModel.setQuickUnbindArmed(!viewModel.isQuickUnbindArmed());
                             refreshToolbarStates();
                         }
@@ -394,21 +388,15 @@ public final class InputTweaksScreen extends Screen {
         }
 
         if (viewModel.capturingBindId() != null) {
+            if (keyCode == GLFW.GLFW_KEY_UNKNOWN) return true;
             String targetId = viewModel.capturingBindId();
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-                pendingModifierKey = -1;
-                viewModel.assignChord(targetId, KeyChord.UNBOUND);
+            var committed = viewModel.captureSession().onPress(KeyCode.keyboard(keyCode));
+            if (committed.isPresent()) {
+                viewModel.assignChord(targetId, committed.get());
                 viewModel.setCapturingBindId(null);
-                refreshInPlace();
-                return true;
+            } else if (!viewModel.captureSession().isActive()) {
+                viewModel.setCapturingBindId(null);
             }
-            if (isStandaloneModifier(keyCode)) {
-                pendingModifierKey = keyCode;
-                return true;
-            }
-            pendingModifierKey = -1;
-            viewModel.assignChord(targetId, KeyChord.of(KeyCode.keyboard(keyCode), extractHeldModifiers(keyCode)));
-            viewModel.setCapturingBindId(null);
             refreshInPlace();
             return true;
         }
@@ -429,12 +417,14 @@ public final class InputTweaksScreen extends Screen {
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        if (viewModel.capturingBindId() != null && pendingModifierKey == keyCode) {
+        if (viewModel.capturingBindId() != null) {
             String targetId = viewModel.capturingBindId();
-            pendingModifierKey = -1;
-            viewModel.assignChord(targetId, KeyChord.of(KeyCode.keyboard(keyCode)));
-            viewModel.setCapturingBindId(null);
-            refreshInPlace();
+            var committed = viewModel.captureSession().onRelease(KeyCode.keyboard(keyCode));
+            if (committed.isPresent()) {
+                viewModel.assignChord(targetId, committed.get());
+                viewModel.setCapturingBindId(null);
+                refreshInPlace();
+            }
             return true;
         }
         return super.keyReleased(keyCode, scanCode, modifiers);
@@ -456,9 +446,11 @@ public final class InputTweaksScreen extends Screen {
 
         if (viewModel.capturingBindId() != null) {
             String targetId = viewModel.capturingBindId();
-            pendingModifierKey = -1;
-            viewModel.assignChord(targetId, KeyChord.of(KeyCode.mouse(button), extractHeldModifiers(-1)));
-            viewModel.setCapturingBindId(null);
+            var committed = viewModel.captureSession().onPress(KeyCode.mouse(button));
+            if (committed.isPresent()) {
+                viewModel.assignChord(targetId, committed.get());
+                viewModel.setCapturingBindId(null);
+            }
             refreshInPlace();
             return true;
         }
@@ -482,24 +474,19 @@ public final class InputTweaksScreen extends Screen {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private boolean isStandaloneModifier(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT
-                || keyCode == GLFW.GLFW_KEY_LEFT_CONTROL || keyCode == GLFW.GLFW_KEY_RIGHT_CONTROL
-                || keyCode == GLFW.GLFW_KEY_LEFT_ALT || keyCode == GLFW.GLFW_KEY_RIGHT_ALT;
-    }
-
-    private Set<KeyCode> extractHeldModifiers(int primaryKey) {
-        Set<KeyCode> mods = new HashSet<>();
-        if (Screen.hasControlDown() && primaryKey != GLFW.GLFW_KEY_LEFT_CONTROL && primaryKey != GLFW.GLFW_KEY_RIGHT_CONTROL) {
-            mods.add(KeyCode.keyboard(GLFW.GLFW_KEY_LEFT_CONTROL));
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (viewModel.capturingBindId() != null) {
+            String targetId = viewModel.capturingBindId();
+            var committed = viewModel.captureSession().onRelease(KeyCode.mouse(button));
+            if (committed.isPresent()) {
+                viewModel.assignChord(targetId, committed.get());
+                viewModel.setCapturingBindId(null);
+                refreshInPlace();
+                return true;
+            }
         }
-        if (Screen.hasAltDown() && primaryKey != GLFW.GLFW_KEY_LEFT_ALT && primaryKey != GLFW.GLFW_KEY_RIGHT_ALT) {
-            mods.add(KeyCode.keyboard(GLFW.GLFW_KEY_LEFT_ALT));
-        }
-        if (Screen.hasShiftDown() && primaryKey != GLFW.GLFW_KEY_LEFT_SHIFT && primaryKey != GLFW.GLFW_KEY_RIGHT_SHIFT) {
-            mods.add(KeyCode.keyboard(GLFW.GLFW_KEY_LEFT_SHIFT));
-        }
-        return mods;
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override

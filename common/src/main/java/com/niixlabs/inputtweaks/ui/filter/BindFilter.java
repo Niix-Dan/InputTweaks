@@ -19,16 +19,18 @@ public final class BindFilter {
     }
 
     public boolean matches(
-            ResolvedBind bind,
-            String rawQuery,
-            FilterMode mode,
-            KeyCode keyFilter,
-            boolean packDevMode
+        ResolvedBind bind,
+        String rawQuery,
+        FilterMode mode,
+        KeyCode keyFilter,
+        boolean packDevMode
     ) {
         if (bind.hidden() && !packDevMode && mode != FilterMode.HIDDEN) {
             return false;
         }
-        if (keyFilter != null && !bind.chord().primary().equals(keyFilter)) {
+        if (keyFilter != null
+            && !bind.chord().primary().equals(keyFilter)
+            && !bind.chord().modifiers().contains(keyFilter)) {
             return false;
         }
 
@@ -70,9 +72,9 @@ public final class BindFilter {
         String keyName = InputKeyMapper.formatChord(bind.chord()).getString().toLowerCase(Locale.ROOT);
 
         return displayName.contains(q)
-                || categoryName.contains(q)
-                || keyName.contains(q)
-                || bind.action().modId().toLowerCase(Locale.ROOT).contains(q)
-                || bind.id().toLowerCase(Locale.ROOT).contains(q);
+            || categoryName.contains(q)
+            || keyName.contains(q)
+            || bind.action().modId().toLowerCase(Locale.ROOT).contains(q)
+            || bind.id().toLowerCase(Locale.ROOT).contains(q);
     }
 }

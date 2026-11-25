@@ -5,6 +5,7 @@ import com.niixlabs.inputtweaks.bridge.InputKeyMapper;
 import com.niixlabs.inputtweaks.bridge.ItemIconResolver;
 import com.niixlabs.inputtweaks.core.model.*;
 import com.niixlabs.inputtweaks.core.radial.RadialMenuManager;
+import com.niixlabs.inputtweaks.ui.capture.ChordCaptureSession;
 import com.niixlabs.inputtweaks.ui.overlay.RadialMenuScreen;
 import com.niixlabs.inputtweaks.ui.theme.UiPalette;
 import com.niixlabs.inputtweaks.ui.widget.RadialGeometryRenderer;
@@ -20,9 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public final class RadialEditorScreen extends Screen {
     private static final int MAX_SLOTS = 12;
@@ -32,14 +31,13 @@ public final class RadialEditorScreen extends Screen {
     private final Screen parent;
     private final RadialMenuManager radialManager;
     private final List<RadialSlot> slots = new ArrayList<>();
+    private final ChordCaptureSession captureSession = new ChordCaptureSession();
     private RadialScope scope;
     private String editingId;
     private String titleText = "Quick Menu";
     private KeyChord triggerChord = KeyChord.of(KeyCode.keyboard(GLFW.GLFW_KEY_V));
     private RadialActivationMode activationMode = RadialActivationMode.HOLD_RELEASE;
     private int selectedSlotIdx = -1;
-    private boolean capturingKey = false;
-    private int pendingModifierKey = -1;
     private boolean hasWheel = false;
 
     private float pointerAngleRad = (float) (-Math.PI / 2.0);
@@ -86,7 +84,7 @@ public final class RadialEditorScreen extends Screen {
         this.slots.clear();
         this.slots.addAll(def.slots());
         this.selectedSlotIdx = slots.isEmpty() ? -1 : 0;
-        this.capturingKey = false;
+        this.captureSession.cancel();
     }
 
     private void createStarterWheel() {
@@ -236,8 +234,8 @@ public final class RadialEditorScreen extends Screen {
             addRenderableWidget(this.wheelTitleBox);
 
             this.keyButton = addRenderableWidget(Button.builder(buildTriggerKeyLabel(), btn -> {
-                        capturingKey = !capturingKey;
-                        pendingModifierKey = -1;
+                        if (captureSession.isActive()) captureSession.cancel();
+                        else captureSession.start();
                         btn.setMessage(buildTriggerKeyLabel());
                     }).bounds(left + nameW + 4, row2Y, keyW, 18)
                     .tooltip(Tooltip.create(Component.translatable("inputtweaks.radial.editor.key_tip")))
@@ -403,12 +401,15 @@ public final class RadialEditorScreen extends Screen {
     }
 
     private Component buildTriggerKeyLabel() {
-        if (capturingKey) {
-            return Component.literal("> Press Key <").withStyle(ChatFormatting.YELLOW);
+        if (captureSession.isActive()) {
+            Component inner = captureSession.hasKeysPressed()
+                    ? InputKeyMapper.formatCapturePreview(captureSession.orderedKeys())
+                    : Component.literal("Press Key(s)");
+            return Component.literal("> ").append(inner).append(" <").withStyle(ChatFormatting.YELLOW);
         }
         return Component.literal("Key: ")
                 .withStyle(ChatFormatting.GRAY)
-                .append(InputKeyMapper.formatChord(triggerChord).copy().withStyle(ChatFormatting.WHITE));
+                .append(InputKeyMapper.formatChordCompact(triggerChord).copy().withStyle(ChatFormatting.WHITE));
     }
 
     private int nextAccentColor(int current) {
@@ -561,21 +562,10 @@ public final class RadialEditorScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (capturingKey) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-                triggerChord = KeyChord.UNBOUND;
-                capturingKey = false;
-                pendingModifierKey = -1;
-                if (keyButton != null) keyButton.setMessage(buildTriggerKeyLabel());
-                return true;
-            }
-            if (isStandaloneModifier(keyCode)) {
-                pendingModifierKey = keyCode;
-                return true;
-            }
-            triggerChord = KeyChord.of(KeyCode.keyboard(keyCode), extractHeldModifiers(keyCode));
-            capturingKey = false;
-            pendingModifierKey = -1;
+        if (captureSession.isActive()) {
+            if (keyCode == GLFW.GLFW_KEY_UNKNOWN) return true;
+            var committed = captureSession.onPress(KeyCode.keyboard(keyCode));
+            committed.ifPresent(chord -> triggerChord = chord);
             if (keyButton != null) keyButton.setMessage(buildTriggerKeyLabel());
             return true;
         }
@@ -584,10 +574,9 @@ public final class RadialEditorScreen extends Screen {
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        if (capturingKey && pendingModifierKey == keyCode) {
-            triggerChord = KeyChord.of(KeyCode.keyboard(keyCode));
-            capturingKey = false;
-            pendingModifierKey = -1;
+        if (captureSession.isActive()) {
+            var committed = captureSession.onRelease(KeyCode.keyboard(keyCode));
+            committed.ifPresent(chord -> triggerChord = chord);
             if (keyButton != null) keyButton.setMessage(buildTriggerKeyLabel());
             return true;
         }
@@ -596,10 +585,9 @@ public final class RadialEditorScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (capturingKey) {
-            triggerChord = KeyChord.of(KeyCode.mouse(button), extractHeldModifiers(-1));
-            capturingKey = false;
-            pendingModifierKey = -1;
+        if (captureSession.isActive()) {
+            var committed = captureSession.onPress(KeyCode.mouse(button));
+            committed.ifPresent(chord -> triggerChord = chord);
             if (keyButton != null) keyButton.setMessage(buildTriggerKeyLabel());
             return true;
         }
@@ -628,24 +616,17 @@ public final class RadialEditorScreen extends Screen {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    private boolean isStandaloneModifier(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT
-                || keyCode == GLFW.GLFW_KEY_LEFT_CONTROL || keyCode == GLFW.GLFW_KEY_RIGHT_CONTROL
-                || keyCode == GLFW.GLFW_KEY_LEFT_ALT || keyCode == GLFW.GLFW_KEY_RIGHT_ALT;
-    }
-
-    private Set<KeyCode> extractHeldModifiers(int primaryKey) {
-        Set<KeyCode> mods = new HashSet<>();
-        if (Screen.hasControlDown() && primaryKey != GLFW.GLFW_KEY_LEFT_CONTROL && primaryKey != GLFW.GLFW_KEY_RIGHT_CONTROL) {
-            mods.add(KeyCode.keyboard(GLFW.GLFW_KEY_LEFT_CONTROL));
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (captureSession.isActive()) {
+            var committed = captureSession.onRelease(KeyCode.mouse(button));
+            if (committed.isPresent()) {
+                triggerChord = committed.get();
+                if (keyButton != null) keyButton.setMessage(buildTriggerKeyLabel());
+                return true;
+            }
         }
-        if (Screen.hasAltDown() && primaryKey != GLFW.GLFW_KEY_LEFT_ALT && primaryKey != GLFW.GLFW_KEY_RIGHT_ALT) {
-            mods.add(KeyCode.keyboard(GLFW.GLFW_KEY_LEFT_ALT));
-        }
-        if (Screen.hasShiftDown() && primaryKey != GLFW.GLFW_KEY_LEFT_SHIFT && primaryKey != GLFW.GLFW_KEY_RIGHT_SHIFT) {
-            mods.add(KeyCode.keyboard(GLFW.GLFW_KEY_LEFT_SHIFT));
-        }
-        return mods;
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override

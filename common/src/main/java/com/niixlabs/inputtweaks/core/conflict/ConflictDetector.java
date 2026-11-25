@@ -5,11 +5,16 @@ import com.niixlabs.inputtweaks.core.context.ContextRegistry;
 import com.niixlabs.inputtweaks.core.model.KeyCode;
 import com.niixlabs.inputtweaks.core.model.ResolvedBind;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class ConflictDetector {
     private final ContextRegistry contextRegistry;
     private final Map<KeyCode, List<ResolvedBind>> byPrimaryKey = new HashMap<>();
+    private final Map<KeyCode, List<ResolvedBind>> byModifierKey = new HashMap<>();
 
     public ConflictDetector(ContextRegistry contextRegistry) {
         this.contextRegistry = contextRegistry;
@@ -17,14 +22,27 @@ public final class ConflictDetector {
 
     public void rebuildIndex(Collection<ResolvedBind> binds) {
         byPrimaryKey.clear();
+        byModifierKey.clear();
         for (ResolvedBind bind : binds) {
             if (bind.hardDisabled() || bind.chord().isUnbound()) continue;
             byPrimaryKey.computeIfAbsent(bind.chord().primary(), k -> new ArrayList<>()).add(bind);
+            for (KeyCode mod : bind.chord().modifiers()) {
+                byModifierKey.computeIfAbsent(mod, k -> new ArrayList<>()).add(bind);
+            }
         }
     }
 
     public List<ResolvedBind> getBindsForKey(KeyCode key) {
         return byPrimaryKey.getOrDefault(key, List.of());
+    }
+
+    public List<ResolvedBind> getModifierCombos(KeyCode key) {
+        return byModifierKey.getOrDefault(key, List.of());
+    }
+
+    public boolean isUsedAsModifier(KeyCode key) {
+        List<ResolvedBind> list = byModifierKey.get(key);
+        return list != null && !list.isEmpty();
     }
 
     public List<ResolvedBind> getRealConflicts(ResolvedBind target) {
