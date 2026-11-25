@@ -35,7 +35,7 @@ body:
     attributes:
       label: To Reproduce
       description: Steps to reproduce the behavior.
-      value: ""
+      placeholder: e.g., "Open minecraft, Buy a banana..."
     validations:
       required: true
 
