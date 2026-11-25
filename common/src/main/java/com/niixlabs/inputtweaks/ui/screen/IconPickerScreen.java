@@ -60,21 +60,10 @@ public final class IconPickerScreen extends Screen {
                 .bounds(this.width / 2 - 50, cardTop + CARD_H - 26, 100, 18).build());
     }
 
-    private int gridLeft() {
-        return this.width / 2 - (COLS * CELL) / 2 - 3;
-    }
-
-    private int gridTop() {
-        return this.height / 2 - CARD_H / 2 + 56;
-    }
-
-    private int scrollbarX() {
-        return gridLeft() + COLS * CELL + 4;
-    }
-
-    private int scrollbarHeight() {
-        return VISIBLE_ROWS * CELL - 2;
-    }
+    private int gridLeft() { return this.width / 2 - (COLS * CELL) / 2 - 3; }
+    private int gridTop() { return this.height / 2 - CARD_H / 2 + 56; }
+    private int scrollbarX() { return gridLeft() + COLS * CELL + 4; }
+    private int scrollbarHeight() { return VISIBLE_ROWS * CELL - 2; }
 
     private int maxScrollRow() {
         int totalRows = (filtered.size() + COLS - 1) / COLS;

@@ -13,6 +13,7 @@ import com.niixlabs.inputtweaks.core.model.ResolvedBind;
 import com.niixlabs.inputtweaks.core.profile.ProfileManager;
 import com.niixlabs.inputtweaks.core.share.ShareCodeCodec;
 import com.niixlabs.inputtweaks.ui.filter.BindFilter;
+import com.niixlabs.inputtweaks.ui.capture.ChordCaptureSession;
 import com.niixlabs.inputtweaks.ui.filter.FilterMode;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public final class ControlsViewModel {
     private final UsageTracker usageTracker;
     private final EditHistory history;
     private final BindFilter filter;
+    private final ChordCaptureSession captureSession = new ChordCaptureSession();
 
     private String searchQuery = "";
     private FilterMode filterMode = FilterMode.ALL;
@@ -246,42 +248,17 @@ public final class ControlsViewModel {
         return 1.0f;
     }
 
-    public ProfileManager profileManager() {
-        return profileManager;
-    }
+    public ProfileManager profileManager() { return profileManager; }
+    public ConflictDetector conflictDetector() { return conflictDetector; }
+    public ContextRegistry contextRegistry() { return contextRegistry; }
+    public InputDispatcher dispatcher() { return dispatcher; }
+    public UsageTracker usageTracker() { return usageTracker; }
+    public EditHistory history() { return history; }
 
-    public ConflictDetector conflictDetector() {
-        return conflictDetector;
-    }
+    public String searchQuery() { return searchQuery; }
+    public void setSearchQuery(String query) { this.searchQuery = query; }
 
-    public ContextRegistry contextRegistry() {
-        return contextRegistry;
-    }
-
-    public InputDispatcher dispatcher() {
-        return dispatcher;
-    }
-
-    public UsageTracker usageTracker() {
-        return usageTracker;
-    }
-
-    public EditHistory history() {
-        return history;
-    }
-
-    public String searchQuery() {
-        return searchQuery;
-    }
-
-    public void setSearchQuery(String query) {
-        this.searchQuery = query;
-    }
-
-    public FilterMode filterMode() {
-        return filterMode;
-    }
-
+    public FilterMode filterMode() { return filterMode; }
     public void cycleFilterMode() {
         this.filterMode = filterMode.next();
         if (filterMode != FilterMode.CONFLICTS) {
@@ -289,56 +266,33 @@ public final class ControlsViewModel {
         }
     }
 
-    public KeyCode selectedKeyFilter() {
-        return selectedKeyFilter;
-    }
-
-    public void clearKeyFilter() {
-        this.selectedKeyFilter = null;
-    }
-
+    public KeyCode selectedKeyFilter() { return selectedKeyFilter; }
+    public void clearKeyFilter() { this.selectedKeyFilter = null; }
     public void toggleKeyFilter(KeyCode key) {
         this.selectedKeyFilter = key.equals(selectedKeyFilter) ? null : key;
         this.listScrollAmount = 0.0;
     }
 
-    public boolean isHeatmapVisible() {
-        return heatmapVisible;
-    }
+    public boolean isHeatmapVisible() { return heatmapVisible; }
+    public void toggleHeatmap() { this.heatmapVisible = !heatmapVisible; }
 
-    public void toggleHeatmap() {
-        this.heatmapVisible = !heatmapVisible;
-    }
+    public boolean isPackDevMode() { return packDevMode; }
+    public void togglePackDevMode() { this.packDevMode = !packDevMode; }
 
-    public boolean isPackDevMode() {
-        return packDevMode;
-    }
+    public boolean isQuickUnbindArmed() { return quickUnbindArmed; }
+    public void setQuickUnbindArmed(boolean armed) { this.quickUnbindArmed = armed; }
 
-    public void togglePackDevMode() {
-        this.packDevMode = !packDevMode;
-    }
-
-    public boolean isQuickUnbindArmed() {
-        return quickUnbindArmed;
-    }
-
-    public void setQuickUnbindArmed(boolean armed) {
-        this.quickUnbindArmed = armed;
-    }
-
-    public String capturingBindId() {
-        return capturingBindId;
-    }
-
+    public ChordCaptureSession captureSession() { return captureSession; }
+    public String capturingBindId() { return capturingBindId; }
     public void setCapturingBindId(String bindId) {
         this.capturingBindId = bindId;
+        if (bindId != null) {
+            this.captureSession.start();
+        } else {
+            this.captureSession.cancel();
+        }
     }
 
-    public double listScrollAmount() {
-        return listScrollAmount;
-    }
-
-    public void setListScrollAmount(double amount) {
-        this.listScrollAmount = Math.max(0.0, amount);
-    }
+    public double listScrollAmount() { return listScrollAmount; }
+    public void setListScrollAmount(double amount) { this.listScrollAmount = Math.max(0.0, amount); }
 }

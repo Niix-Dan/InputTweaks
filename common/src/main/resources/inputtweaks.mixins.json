@@ -9,6 +9,7 @@
     "GuiOverlayMixin",
     "KeyboardHandlerMixin",
     "KeyMappingAccessor",
+    "KeyMappingMixin",
     "MinecraftScreenMixin",
     "MouseHandlerMixin"
   ],

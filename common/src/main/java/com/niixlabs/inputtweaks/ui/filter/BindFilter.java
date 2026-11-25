@@ -28,7 +28,9 @@ public final class BindFilter {
         if (bind.hidden() && !packDevMode && mode != FilterMode.HIDDEN) {
             return false;
         }
-        if (keyFilter != null && !bind.chord().primary().equals(keyFilter)) {
+        if (keyFilter != null
+                && !bind.chord().primary().equals(keyFilter)
+                && !bind.chord().modifiers().contains(keyFilter)) {
             return false;
         }
 

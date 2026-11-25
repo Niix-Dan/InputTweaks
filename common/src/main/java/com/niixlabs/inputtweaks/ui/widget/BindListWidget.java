@@ -22,7 +22,11 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class BindListWidget extends ContainerObjectSelectionList<BindListWidget.RowEntry> {
     private final ControlsViewModel viewModel;
@@ -110,30 +114,7 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
         return this.width / 2 + getRowWidth() / 2 + 6;
     }
 
-    public abstract static class RowEntry extends Entry<RowEntry> {
-    }
-
-    private static final class ActionButton extends Button {
-        private final Runnable onRightClick;
-
-        ActionButton(int width, int height, Component message, OnPress onLeftClick, Runnable onRightClick, Tooltip tooltip) {
-            super(0, 0, width, height, message, onLeftClick, DEFAULT_NARRATION);
-            this.onRightClick = onRightClick;
-            if (tooltip != null) {
-                setTooltip(tooltip);
-            }
-        }
-
-        @Override
-        public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            if (this.active && this.visible && button == 1 && onRightClick != null && isMouseOver(mouseX, mouseY)) {
-                this.playDownSound(Minecraft.getInstance().getSoundManager());
-                onRightClick.run();
-                return true;
-            }
-            return super.mouseClicked(mouseX, mouseY, button);
-        }
-    }
+    public abstract static class RowEntry extends ContainerObjectSelectionList.Entry<RowEntry> {}
 
     private final class EmptyStateEntry extends RowEntry {
         private final Component message;
@@ -150,15 +131,8 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
             graphics.drawCenteredString(minecraft.font, message, left + width / 2, top + 8, UiPalette.TEXT_MUTED);
         }
 
-        @Override
-        public List<? extends GuiEventListener> children() {
-            return List.of();
-        }
-
-        @Override
-        public List<? extends NarratableEntry> narratables() {
-            return List.of();
-        }
+        @Override public List<? extends GuiEventListener> children() { return List.of(); }
+        @Override public List<? extends NarratableEntry> narratables() { return List.of(); }
     }
 
     private final class CategoryEntry extends RowEntry {
@@ -190,24 +164,41 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
             graphics.drawCenteredString(minecraft.font, full, centerX, top + (height - minecraft.font.lineHeight) / 2 + 1, UiPalette.TEXT_PRIMARY);
         }
 
-        @Override
-        public List<? extends GuiEventListener> children() {
-            return List.of();
-        }
+        @Override public List<? extends GuiEventListener> children() { return List.of(); }
 
         @Override
         public List<? extends NarratableEntry> narratables() {
             return List.of(new NarratableEntry() {
-                @Override
-                public NarrationPriority narrationPriority() {
-                    return NarrationPriority.HOVERED;
-                }
-
-                @Override
-                public void updateNarration(NarrationElementOutput output) {
+                @Override public NarrationPriority narrationPriority() { return NarrationPriority.HOVERED; }
+                @Override public void updateNarration(NarrationElementOutput output) {
                     output.add(NarratedElementType.TITLE, label);
                 }
             });
+        }
+    }
+
+    /**
+     * Lightweight Button extension supporting right-click callbacks (SRP: keeps row controls ergonomic).
+     */
+    private static final class ActionButton extends Button {
+        private final Runnable onRightClick;
+
+        ActionButton(int width, int height, Component message, OnPress onLeftClick, Runnable onRightClick, Tooltip tooltip) {
+            super(0, 0, width, height, message, onLeftClick, DEFAULT_NARRATION);
+            this.onRightClick = onRightClick;
+            if (tooltip != null) {
+                setTooltip(tooltip);
+            }
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (this.active && this.visible && button == 1 && onRightClick != null && isMouseOver(mouseX, mouseY)) {
+                this.playDownSound(Minecraft.getInstance().getSoundManager());
+                onRightClick.run();
+                return true;
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
         }
     }
 
@@ -355,40 +346,28 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
         private void buildPackDevControls() {
             Button hideBtn = Button.builder(
                             Component.literal("H").withStyle(bind.hidden() ? ChatFormatting.YELLOW : ChatFormatting.DARK_GRAY),
-                            btn -> {
-                                viewModel.togglePackHidden(bind.id());
-                                softRefreshCallback.run();
-                            }
+                            btn -> { viewModel.togglePackHidden(bind.id()); softRefreshCallback.run(); }
                     ).bounds(0, 0, 22, 18)
                     .tooltip(Tooltip.create(Component.translatable("inputtweaks.packdev.hide")))
                     .build();
 
             Button disableBtn = Button.builder(
                             Component.literal("D").withStyle(bind.hardDisabled() ? ChatFormatting.RED : ChatFormatting.DARK_GRAY),
-                            btn -> {
-                                viewModel.togglePackDisabled(bind.id());
-                                softRefreshCallback.run();
-                            }
+                            btn -> { viewModel.togglePackDisabled(bind.id()); softRefreshCallback.run(); }
                     ).bounds(0, 0, 22, 18)
                     .tooltip(Tooltip.create(Component.translatable("inputtweaks.packdev.disable")))
                     .build();
 
             Button lockBtn = Button.builder(
                             Component.literal("L").withStyle(bind.locked() ? ChatFormatting.AQUA : ChatFormatting.DARK_GRAY),
-                            btn -> {
-                                viewModel.togglePackLocked(bind.id());
-                                softRefreshCallback.run();
-                            }
+                            btn -> { viewModel.togglePackLocked(bind.id()); softRefreshCallback.run(); }
                     ).bounds(0, 0, 22, 18)
                     .tooltip(Tooltip.create(Component.translatable("inputtweaks.packdev.lock")))
                     .build();
 
             Button resetBtn = Button.builder(
                     Component.translatable("controls.reset"),
-                    btn -> {
-                        viewModel.resetSingleBind(bind.id());
-                        softRefreshCallback.run();
-                    }
+                    btn -> { viewModel.resetSingleBind(bind.id()); softRefreshCallback.run(); }
             ).bounds(0, 0, 48, 18).build();
 
             extraButtons.add(hideBtn);
@@ -402,13 +381,15 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
                 return Component.translatable("inputtweaks.state.disabled").withStyle(ChatFormatting.DARK_RED);
             }
             if (bind.id().equals(viewModel.capturingBindId())) {
+                Component inner = viewModel.captureSession().hasKeysPressed()
+                        ? InputKeyMapper.formatCapturePreview(viewModel.captureSession().orderedKeys())
+                        : Component.translatable("inputtweaks.state.press_key");
                 return Component.literal("> ")
-                        .append(Component.translatable("inputtweaks.state.press_key")
-                                .withStyle(ChatFormatting.WHITE, ChatFormatting.UNDERLINE))
+                        .append(inner.copy().withStyle(ChatFormatting.WHITE, ChatFormatting.UNDERLINE))
                         .append(" <")
                         .withStyle(ChatFormatting.YELLOW);
             }
-            MutableComponent base = InputKeyMapper.formatChord(bind.chord()).copy();
+            MutableComponent base = InputKeyMapper.formatChordCompact(bind.chord()).copy();
             if (bind.chord().isUnbound()) {
                 return base.withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC);
             }
@@ -424,6 +405,11 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
         private List<Component> buildTooltipLines() {
             List<Component> lines = new ArrayList<>();
             lines.add(displayName.copy().withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD));
+            if (bind.chord().hasModifiers()) {
+                lines.add(Component.literal("Combo: ")
+                        .withStyle(ChatFormatting.GRAY)
+                        .append(InputKeyMapper.formatChord(bind.chord()).copy().withStyle(ChatFormatting.AQUA)));
+            }
             lines.add(Component.translatable(bind.origin().translationKey()).withStyle(ChatFormatting.GRAY)
                     .append(Component.literal("  •  @" + bind.action().modId()).withStyle(ChatFormatting.DARK_GRAY)));
 
@@ -526,13 +512,8 @@ public final class BindListWidget extends ContainerObjectSelectionList<BindListW
             }
         }
 
-        @Override
-        public List<? extends GuiEventListener> children() {
-            return allChildren;
-        }
-
-        @Override
-        public List<? extends NarratableEntry> narratables() {
+        @Override public List<? extends GuiEventListener> children() { return allChildren; }
+        @Override public List<? extends NarratableEntry> narratables() {
             List<NarratableEntry> list = new ArrayList<>();
             list.add(keyButton);
             list.addAll(extraButtons);

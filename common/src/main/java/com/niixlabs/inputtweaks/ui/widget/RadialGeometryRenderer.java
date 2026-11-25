@@ -56,7 +56,7 @@ public final class RadialGeometryRenderer {
         Matrix4f matrix = graphics.pose().last().pose();
         VertexConsumer vc = graphics.bufferSource().getBuffer(RenderType.gui());
 
-        drawAnnulus(vc, matrix, cx, cy, rIn - 2.0f, rOut + 5.0f, 0.0f, (float) (Math.PI * 2.0), 48,
+        drawAnnulus(vc, matrix, cx, cy, Math.max(0.0f, rIn - 2.0f), rOut + 5.0f, 0.0f, (float) (Math.PI * 2.0), 48,
                 scaleAlpha(0x55080A0F, globalAlpha));
 
         if (count == 0) {
@@ -82,33 +82,40 @@ public final class RadialGeometryRenderer {
                 float endA = centerAngle + step / 2.0f - gap / 2.0f;
 
                 float wedgeOut = rOut + focus * 7.0f * openScale;
-                float wedgeIn = rIn + (1.0f - focus);
+                float wedgeIn = rIn + (1.0f - focus) * 1.0f;
                 int segments = Math.max(8, Math.round(52.0f / count));
 
-                int baseFill = lerpArgb(0xCC141822, tintDark(slot.accentColor(), 0.58f, 0xE6), focus);
+                int baseFill = lerpArgb(0xCC141822, tintDark(slot.accentColor(), 0.52f, 0xE6), focus);
                 drawAnnulus(vc, matrix, cx, cy, wedgeIn, wedgeOut, startA, endA, segments,
                         scaleAlpha(baseFill, globalAlpha));
 
-                int innerRim = lerpArgb(0x663A4354, 0xCCFFFFFF, focus * 0.6f);
+                int sideBorder = lerpArgb(0x88424D61, 0xDDFFFFFF, focus * 0.7f);
                 drawAnnulus(vc, matrix, cx, cy, wedgeIn, wedgeIn + 1.4f, startA, endA, segments,
-                        scaleAlpha(innerRim, globalAlpha));
+                        scaleAlpha(sideBorder, globalAlpha));
 
-                float rimThickness = 2.0f + focus * 2.4f;
-                int outerRim = lerpArgb(tintDark(slot.accentColor(), 0.65f, 0xAA), slot.accentColor(), focus);
+                if (count > 1) {
+                    drawRadialEdge(vc, matrix, cx, cy, wedgeIn, wedgeOut, startA, 0.7f,
+                            scaleAlpha(sideBorder, globalAlpha));
+                    drawRadialEdge(vc, matrix, cx, cy, wedgeIn, wedgeOut, endA, 0.7f,
+                            scaleAlpha(sideBorder, globalAlpha));
+                }
+
+                float rimThickness = 2.2f + focus * 2.4f;
+                int outerRim = lerpArgb(tintDark(slot.accentColor(), 0.72f, 0xCC), slot.accentColor(), focus);
                 drawAnnulus(vc, matrix, cx, cy, wedgeOut - rimThickness, wedgeOut, startA, endA, segments,
                         scaleAlpha(outerRim, globalAlpha));
 
                 if (isSelected) {
-                    drawAnnulus(vc, matrix, cx, cy, wedgeOut, wedgeOut + 1.5f, startA, endA, segments,
+                    drawAnnulus(vc, matrix, cx, cy, wedgeOut, wedgeOut + 1.6f, startA, endA, segments,
                             scaleAlpha(0xFFFFFFFF, globalAlpha));
                 }
             }
         }
 
         float hubR = Math.max(12.0f, rIn - 4.0f);
-        drawDisc(vc, matrix, cx, cy, hubR, 36, scaleAlpha(0xE010131B, globalAlpha));
-        int hubBorder = hoveredIndex >= 0 ? pointerColor : 0xFF455066;
-        drawAnnulus(vc, matrix, cx, cy, hubR - 1.6f, hubR, 0.0f, (float) (Math.PI * 2.0), 36,
+        drawDisc(vc, matrix, cx, cy, hubR, 36, scaleAlpha(0xE610131B, globalAlpha));
+        int hubBorder = hoveredIndex >= 0 ? pointerColor : 0xFF4C5870;
+        drawAnnulus(vc, matrix, cx, cy, hubR - 1.8f, hubR, 0.0f, (float) (Math.PI * 2.0), 36,
                 scaleAlpha(hubBorder, globalAlpha));
 
         if (showPointer) {
@@ -196,6 +203,9 @@ public final class RadialGeometryRenderer {
         return current + diff * t;
     }
 
+    /**
+     * Emits front-facing GUI quads matching Minecraft's screen-space winding order (same as GuiGraphics.fill).
+     */
     private static void drawAnnulus(
             VertexConsumer vc, Matrix4f m,
             float cx, float cy, float rInner, float rOuter,
@@ -224,12 +234,39 @@ public final class RadialGeometryRenderer {
         }
     }
 
+    private static void drawRadialEdge(
+            VertexConsumer vc, Matrix4f m,
+            float cx, float cy, float rInner, float rOuter, float angle, float halfThickness, int argb
+    ) {
+        int a = (argb >>> 24) & 0xFF;
+        int r = (argb >>> 16) & 0xFF;
+        int g = (argb >>> 8) & 0xFF;
+        int b = argb & 0xFF;
+        if (a <= 0 || rOuter <= rInner) return;
+
+        float cos = (float) Math.cos(angle);
+        float sin = (float) Math.sin(angle);
+        float nx = -sin * halfThickness;
+        float ny = cos * halfThickness;
+
+        float x0 = cx + cos * rInner;
+        float y0 = cy + sin * rInner;
+        float x1 = cx + cos * rOuter;
+        float y1 = cy + sin * rOuter;
+
+        vc.addVertex(m, x0 - nx, y0 - ny, 0).setColor(r, g, b, a);
+        vc.addVertex(m, x0 + nx, y0 + ny, 0).setColor(r, g, b, a);
+        vc.addVertex(m, x1 + nx, y1 + ny, 0).setColor(r, g, b, a);
+        vc.addVertex(m, x1 - nx, y1 - ny, 0).setColor(r, g, b, a);
+    }
+
     private static void drawDisc(
             VertexConsumer vc, Matrix4f m,
             float cx, float cy, float radius, int segments, int argb
     ) {
         drawAnnulus(vc, m, cx, cy, 0.0f, radius, 0.0f, (float) (Math.PI * 2.0), segments, argb);
     }
+
 
     private static void drawPointerArrow(
             VertexConsumer vc, Matrix4f m,

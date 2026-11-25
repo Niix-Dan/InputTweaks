@@ -7,6 +7,5 @@ public interface TriggerStrategy {
 
     boolean handle(ResolvedBind bind, boolean pressed, long nowMs);
 
-    default void resetState(String bindId) {
-    }
+    default void resetState(String bindId) {}
 }
