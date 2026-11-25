@@ -1,5 +1,8 @@
 package com.niixlabs.inputtweaks.bridge;
 
+import com.mojang.blaze3d.platform.Lighting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -52,6 +55,8 @@ public final class ItemIconResolver {
             "minecraft:nether_star"
     );
     private static final Map<String, ItemStack> STACK_CACHE = new HashMap<>();
+    private static final Set<String> UNSAFE_WITHOUT_WORLD = new HashSet<>();
+    private static final Set<String> BROKEN_RENDERERS = new HashSet<>();
     private static List<IconOption> cachedCatalog = null;
     private ItemIconResolver() {
     }
@@ -72,10 +77,6 @@ public final class ItemIconResolver {
         });
     }
 
-    public static String displayName(String itemId) {
-        return resolve(itemId).getHoverName().getString();
-    }
-
     public static List<IconOption> searchCatalog(String query) {
         List<IconOption> all = fullCatalog();
         if (query == null || query.isBlank()) {
@@ -92,6 +93,11 @@ public final class ItemIconResolver {
         return filtered;
     }
 
+    public static String displayName(String itemId) {
+        String fallback = (itemId == null || itemId.isBlank()) ? "minecraft:compass" : itemId;
+        return safeDisplayName(resolve(fallback), fallback);
+    }
+
     private static List<IconOption> fullCatalog() {
         if (cachedCatalog != null) return cachedCatalog;
 
@@ -103,8 +109,13 @@ public final class ItemIconResolver {
             if (rl == null) continue;
             BuiltInRegistries.ITEM.getOptional(rl).ifPresent(item -> {
                 if (item != Items.AIR && seen.add(id)) {
-                    ItemStack stack = new ItemStack(item);
-                    list.add(new IconOption(id, stack.getHoverName().getString(), stack));
+                    try {
+                        ItemStack stack = new ItemStack(item);
+                        if (!stack.isEmpty()) {
+                            list.add(new IconOption(id, safeDisplayName(stack, id), stack));
+                        }
+                    } catch (Throwable ignored) {
+                    }
                 }
             });
         }
@@ -114,13 +125,67 @@ public final class ItemIconResolver {
             ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
             String id = key.toString();
             if (seen.add(id)) {
-                ItemStack stack = new ItemStack(item);
-                list.add(new IconOption(id, stack.getHoverName().getString(), stack));
+                try {
+                    ItemStack stack = new ItemStack(item);
+                    if (!stack.isEmpty()) {
+                        list.add(new IconOption(id, safeDisplayName(stack, id), stack));
+                    }
+                } catch (Throwable ignored) {
+                }
             }
         }
 
         cachedCatalog = List.copyOf(list);
         return cachedCatalog;
+    }
+
+    private static String safeDisplayName(ItemStack stack, String fallbackId) {
+        try {
+            return stack.getHoverName().getString();
+        } catch (Throwable ignored) {
+            return fallbackId;
+        }
+    }
+
+    public static boolean isRenderBlocked(String itemId) {
+        if (itemId == null || itemId.isBlank()) return false;
+        if (BROKEN_RENDERERS.contains(itemId)) return true;
+        Minecraft mc = Minecraft.getInstance();
+        return (mc.player == null || mc.level == null) && UNSAFE_WITHOUT_WORLD.contains(itemId);
+    }
+
+    private static void drawFallbackIcon(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x + 2, y + 2, x + 14, y + 14, 0x663A4354);
+        graphics.renderOutline(x + 2, y + 2, 12, 12, 0xAA6A768C);
+        graphics.drawCenteredString(Minecraft.getInstance().font, "?", x + 8, y + 4, 0xFFCBD4E1);
+    }
+
+    public static void renderSafe(GuiGraphics graphics, String itemId, ItemStack stack, int x, int y) {
+        String key = (itemId == null || itemId.isBlank()) ? "minecraft:compass" : itemId;
+        if (stack == null || stack.isEmpty() || isRenderBlocked(key)) {
+            drawFallbackIcon(graphics, x, y);
+            return;
+        }
+
+        boolean wasPoseClear = graphics.pose().clear();
+        try {
+            graphics.renderFakeItem(stack, x, y);
+        } catch (Throwable t) {
+            if (wasPoseClear) {
+                while (!graphics.pose().clear()) {
+                    graphics.pose().popPose();
+                }
+            }
+            Lighting.setupFor3DItems();
+
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null || mc.level == null) {
+                UNSAFE_WITHOUT_WORLD.add(key);
+            } else {
+                BROKEN_RENDERERS.add(key);
+            }
+            drawFallbackIcon(graphics, x, y);
+        }
     }
 
     public record IconOption(String itemId, String displayName, ItemStack stack) {

@@ -554,7 +554,7 @@ public final class RadialEditorScreen extends Screen {
         graphics.drawString(this.font, Component.literal("Icon & Accent Color"), x, cardY + 91, UiPalette.TEXT_MUTED);
 
         UiPalette.drawFramedPanel(graphics, x, cardY + 102, 20, 18, 0xCC0E1117, UiPalette.CARD_BORDER);
-        graphics.renderFakeItem(ItemIconResolver.resolve(slot.iconItemId()), iconPreviewX - 1, iconPreviewY);
+        ItemIconResolver.renderSafe(graphics, slot.iconItemId(), ItemIconResolver.resolve(slot.iconItemId()), iconPreviewX - 1, iconPreviewY);
 
         UiPalette.drawFramedPanel(graphics, x, cardY + 126, 20, 18, slot.accentColor(), 0xFFFFFFFF);
     }
