@@ -9,15 +9,18 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 public final class IconPickerScreen extends Screen {
     private static final int COLS = 10;
     private static final int CELL = 26;
-    private static final int CARD_W = COLS * CELL + 28;
+    private static final int CARD_W = COLS * CELL + 34;
     private static final int VISIBLE_ROWS = 6;
     private static final int CARD_H = 74 + VISIBLE_ROWS * CELL + 34;
+    private static final int SCROLLBAR_WIDTH = 6;
+    private static final int SCROLL_STEP_ROWS = 3;
 
     private final Screen parent;
     private final String currentIconId;
@@ -26,6 +29,7 @@ public final class IconPickerScreen extends Screen {
     private EditBox searchBox;
     private List<ItemIconResolver.IconOption> filtered = List.of();
     private int scrollRow = 0;
+    private boolean draggingScrollbar = false;
 
     public IconPickerScreen(Screen parent, String currentIconId, Consumer<String> onSelect) {
         super(Component.translatable("inputtweaks.radial.icon_picker.title"));
@@ -47,6 +51,7 @@ public final class IconPickerScreen extends Screen {
         this.searchBox.setResponder(q -> {
             this.filtered = ItemIconResolver.searchCatalog(q);
             this.scrollRow = 0;
+            this.draggingScrollbar = false;
         });
         addRenderableWidget(this.searchBox);
         setInitialFocus(this.searchBox);
@@ -56,16 +61,39 @@ public final class IconPickerScreen extends Screen {
     }
 
     private int gridLeft() {
-        return this.width / 2 - (COLS * CELL) / 2;
+        return this.width / 2 - (COLS * CELL) / 2 - 3;
     }
 
     private int gridTop() {
         return this.height / 2 - CARD_H / 2 + 56;
     }
 
+    private int scrollbarX() {
+        return gridLeft() + COLS * CELL + 4;
+    }
+
+    private int scrollbarHeight() {
+        return VISIBLE_ROWS * CELL - 2;
+    }
+
     private int maxScrollRow() {
         int totalRows = (filtered.size() + COLS - 1) / COLS;
         return Math.max(0, totalRows - VISIBLE_ROWS);
+    }
+
+    private void updateScrollFromMouseY(double mouseY) {
+        int maxScroll = maxScrollRow();
+        if (maxScroll <= 0) {
+            scrollRow = 0;
+            return;
+        }
+        int gy = gridTop();
+        int trackH = scrollbarHeight();
+        int thumbH = Math.max(16, trackH * VISIBLE_ROWS / (maxScroll + VISIBLE_ROWS));
+        int usableH = Math.max(1, trackH - thumbH);
+        double ratio = (mouseY - gy - thumbH / 2.0) / usableH;
+        ratio = Math.max(0.0, Math.min(1.0, ratio));
+        scrollRow = (int) Math.round(ratio * maxScroll);
     }
 
     @Override
@@ -107,30 +135,48 @@ public final class IconPickerScreen extends Screen {
             int bg = isHovered ? 0xCC2B5E94 : (isCurrent ? 0xAA1F3A56 : 0x8810131A);
             int border = isCurrent ? UiPalette.ACCENT_BLUE : (isHovered ? 0xFFFFFFFF : 0xFF2B3240);
             UiPalette.drawFramedPanel(graphics, x, y, CELL - 2, CELL - 2, bg, border);
-            graphics.renderFakeItem(opt.stack(), x + 4, y + 4);
+            ItemIconResolver.renderSafe(graphics, opt.itemId(), opt.stack(), x + 4, y + 4);
         }
 
         int maxScroll = maxScrollRow();
         if (maxScroll > 0) {
-            int trackX = gx + COLS * CELL + 3;
-            int trackH = VISIBLE_ROWS * CELL - 2;
-            graphics.fill(trackX, gy, trackX + 4, gy + trackH, 0x66000000);
+            int trackX = scrollbarX();
+            int trackH = scrollbarHeight();
+            graphics.fill(trackX, gy, trackX + SCROLLBAR_WIDTH, gy + trackH, 0x66000000);
             int thumbH = Math.max(16, trackH * VISIBLE_ROWS / (maxScroll + VISIBLE_ROWS));
             int thumbY = gy + (trackH - thumbH) * scrollRow / maxScroll;
-            graphics.fill(trackX, thumbY, trackX + 4, thumbY + thumbH, UiPalette.ACCENT_BLUE);
+            boolean hoverBar = draggingScrollbar || (mouseX >= trackX - 2 && mouseX <= trackX + SCROLLBAR_WIDTH + 2
+                    && mouseY >= gy && mouseY <= gy + trackH);
+            int thumbColor = hoverBar ? 0xFF66B2FF : UiPalette.ACCENT_BLUE;
+            graphics.fill(trackX, thumbY, trackX + SCROLLBAR_WIDTH, thumbY + thumbH, thumbColor);
         }
 
         if (hovered != null) {
-            graphics.renderComponentTooltip(this.font, List.of(
-                    Component.literal(hovered.displayName()).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD),
-                    Component.literal(hovered.itemId()).withStyle(ChatFormatting.DARK_GRAY)
-            ), mouseX, mouseY);
+            List<Component> tip = new ArrayList<>();
+            tip.add(Component.literal(hovered.displayName()).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD));
+            tip.add(Component.literal(hovered.itemId()).withStyle(ChatFormatting.DARK_GRAY));
+            if (ItemIconResolver.isRenderBlocked(hovered.itemId())) {
+                tip.add(Component.literal("Preview unavailable outside a world").withStyle(ChatFormatting.YELLOW));
+            }
+            graphics.renderComponentTooltip(this.font, tip, mouseX, mouseY);
         }
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
+            int maxScroll = maxScrollRow();
+            if (maxScroll > 0) {
+                int trackX = scrollbarX();
+                int gy = gridTop();
+                if (mouseX >= trackX - 2 && mouseX <= trackX + SCROLLBAR_WIDTH + 2
+                        && mouseY >= gy && mouseY <= gy + scrollbarHeight()) {
+                    draggingScrollbar = true;
+                    updateScrollFromMouseY(mouseY);
+                    return true;
+                }
+            }
+
             int gx = gridLeft();
             int gy = gridTop();
             int startIdx = scrollRow * COLS;
@@ -151,10 +197,31 @@ public final class IconPickerScreen extends Screen {
     }
 
     @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (draggingScrollbar && button == 0) {
+            updateScrollFromMouseY(mouseY);
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0 && draggingScrollbar) {
+            draggingScrollbar = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         int maxScroll = maxScrollRow();
         if (maxScroll > 0) {
-            scrollRow = Math.max(0, Math.min(maxScroll, scrollRow - (scrollY > 0 ? 1 : -1)));
+            int step = Screen.hasShiftDown() ? 8 : SCROLL_STEP_ROWS;
+            int rows = (int) Math.round(Math.abs(scrollY) * step);
+            if (rows < 1) rows = 1;
+            scrollRow = Math.max(0, Math.min(maxScroll, scrollRow + (scrollY > 0 ? -rows : rows)));
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);

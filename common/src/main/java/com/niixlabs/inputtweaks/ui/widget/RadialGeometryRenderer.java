@@ -6,6 +6,7 @@ import com.niixlabs.inputtweaks.core.model.RadialSlot;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Matrix4f;
 
@@ -139,7 +140,7 @@ public final class RadialGeometryRenderer {
 
                 ItemStack stack = ItemIconResolver.resolve(slot.iconItemId());
                 int iconY = compact ? (iy - 8) : (iy - 12);
-                graphics.renderFakeItem(stack, ix - 8, iconY);
+                ItemIconResolver.renderSafe(graphics, slot.iconItemId(), stack, ix - 8, iconY);
 
                 if (!compact) {
                     String shortLabel = font.plainSubstrByWidth(slot.label(), count > 8 ? 44 : 58);
@@ -152,7 +153,11 @@ public final class RadialGeometryRenderer {
         if (openScale > 0.72f) {
             int maxHubTextW = Math.max(24, Math.round(hubR * 1.75f));
             if (centerIcon != null && !centerIcon.isEmpty() && hubR >= 26.0f) {
-                graphics.renderFakeItem(centerIcon, Math.round(cx) - 8, Math.round(cy) - 16);
+                int focusIdx = hoveredIndex >= 0 ? hoveredIndex : selectedIndex;
+                String centerIconId = (focusIdx >= 0 && focusIdx < count)
+                        ? slots.get(focusIdx).iconItemId()
+                        : BuiltInRegistries.ITEM.getKey(centerIcon.getItem()).toString();
+                ItemIconResolver.renderSafe(graphics, centerIconId, centerIcon, Math.round(cx) - 8, Math.round(cy) - 16);
                 if (centerTitle != null && !centerTitle.isEmpty()) {
                     String clipped = font.plainSubstrByWidth(centerTitle, maxHubTextW);
                     graphics.drawCenteredString(font, clipped, Math.round(cx), Math.round(cy) + 3,
